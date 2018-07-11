@@ -1,0 +1,92 @@
+---
+title: 'Block Chain: A Brief Introduction'
+author: "Shiv Sundar"
+date: "July 3, 2018"
+output: html_document
+---
+
+```{r Setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#What is Block Chain?
+Block chain is a concept introduced by Satoshi Nakamoto, a person or persons unknown, that relies on hashing methods (typically SHA256) to create immutable chains of data. An analagous concept is a linked list. The simplest linked list nodes contain a minimum of 2 attributes (or 1 for the "head" node): a reference to the previous node and the data stored in the node. Similarly, a block contains the previous block's hash and its own data.
+
+#What can Block Chain do for Big Data?
+Many people think the concept of block chain can be applied to almost any industry. While this is true, it will not always be the most efficient way to accomplish a certain task. It is best used for an implementation where one must keep track of movement of assets. For big data, a good place to use block chain is to verify integrity of generated data. 
+
+#Real World Uses
+There are three main uses for block chain: cryptocurrencies, digital registries, and smart contracts. These can be used in multiple industries, and a few of them are detailed below.
+
+Industry      | Smart Contracts    | Cryptocurrencies    | Digital Registries
+--------------|--------------------|---------------------|-------------------------
+Energy        | Energy Trading     | Charging E-Vehicles | Performance Validation
+Manufacturing | Machine Time Lease | Machine Wallet      | Track Parts or Products
+Finance       | Insurance          | Billing             | Tamper-proof Documents
+
+#Using Block Chain with Hadoop
+Hadoop and block chain are, in short, two different implementations of data storage. As you may know, Hadoop is a fault-tolerant system for data storage. This means that multiple copies of the data are stored on servers that are connected by a master node. Trying to use block chain on existing Hadoop infrastructure is insecure and causes the chain to act differently than it should. "Decentralization" is what keeps the chain secure. Hadoop is a centralized system. 
+
+#Create your own block chain implementation
+In this section, you can learn how to set up a simple block chain in R! This will use the SHA256 hash function.
+
+##Functions
+These are all the background functions that you need to create and add blocks to a block chain.
+
+```{r Program Functions, eval = FALSE}
+library(openssl)
+library(digest)
+hashed <- function(gen_block) {
+  gen_block$new_hash <- digest(c(gen_block$nonce, 
+                                 gen_block$data, 
+                                 gen_block$previous_hash), "sha256")
+  return(gen_block)
+}
+
+gen_new_block <- function(prev_block, useData) {
+  new_block <- list(nonce = prev_block$nonce + 1,
+                    data = useData,
+                    previous_hash = prev_block$new_hash)
+  new_hash <- hashed(new_block)
+  
+  return(new_hash)
+}
+
+readData <- function(string) { 
+  data <- readline(prompt = paste0("Enter ", string, ": "))
+  return(as.character(data))
+}
+
+readNum <- function(string) { 
+  data <- readline(prompt = paste0("Enter ", string, ": "))
+  return(as.integer(data))
+}
+```
+
+##Using the implementation
+Here we create the block chain with the user choosing the amount of blocks to add and the data to be stored in it.
+
+```{r Console Commands, eval = FALSE}
+gen_block <- list(nonce = 1,
+                  data = "node1",
+                  previous_hash = 0)
+gen_block <- hashed(gen_block)
+blockchain <- list(gen_block)
+previous <- blockchain[[1]]
+numBlocks <- readNum("number of blocks to add")
+for (i in 1:numBlocks) {
+  block_add <- gen_new_block(previous, readData("the data value"))
+  blockchain[i + 1] <- list(block_add)
+  previous <- block_add
+  print(cat(paste0("Block ", i + 1, " was added to the chain")))
+}
+```
+
+##Testing the Block Chain
+Here we create a block that has all of the same information stored in the original block, but with some different data. This situation represents one in which an attacker tries to modify the data for personal gain.
+
+```{r Test Implementation, eval = FALSE}
+fake_hash <- hashed(gen_new_block(blockchain[[length(blockchain) - 1]], paste0("I am an attacker!", blockchain[[length(blockchain) - 1]]$data)))
+print(blockchain[[length(blockchain)]]$previous_hash == fake_hash$new_hash)
+print(blockchain[[length(blockchain)]]$previous_hash == blockchain[[length(blockchain) - 1]]$new_hash)
+```
